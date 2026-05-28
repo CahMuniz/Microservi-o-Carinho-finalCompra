@@ -1,0 +1,82 @@
+# =========================
+# Docker Compose - Microservices Stack
+# Kafka + Zookeeper + MongoDB
+# =========================
+
+services:
+
+  # =========================
+  # ZOOKEEPER
+  # =========================
+  zookeeper:
+    # Imagem oficial do Confluent Zookeeper (versão compatível com Kafka 7.5.0)
+    # O Zookeeper é responsável por coordenar o Kafka (em modo clássico)
+    image: confluentinc/cp-zookeeper:7.5.0
+
+    # Nome fixo do container (facilita acesso via "docker logs zookeeper")
+    container_name: zookeeper
+
+    environment:
+      # Porta padrão de comunicação interna do Zookeeper
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+    ports:
+      # Expõe a porta 2181 para acesso externo (Kafka e debug local)
+      - "2181:2181"
+
+
+  # =========================
+  # KAFKA BROKER
+  # =========================
+  kafka:
+    # Imagem do Kafka (versão compatível com Zookeeper mode)
+    image: confluentinc/cp-kafka:7.5.0
+
+    # Nome fixo do container Kafka
+    container_name: kafka
+
+    # Garante que o Zookeeper inicia antes do Kafka
+    # (Kafka depende dele para registrar o broker)
+    depends_on:
+      - zookeeper
+
+    ports:
+      # Porta padrão do Kafka para aplicações externas (Spring Boot, etc)
+      - "9092:9092"
+
+    environment:
+
+      # ID único do broker Kafka
+      # Em clusters com múltiplos brokers, cada um deve ter um ID diferente
+      KAFKA_BROKER_ID: 1
+
+      # Endereço do Zookeeper usado pelo Kafka para coordenação interna
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      # Interfaces onde o Kafka escuta conexões
+      # 0.0.0.0 = aceita conexões de qualquer interface dentro do container
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+
+      # Endereço que será divulgado para clientes externos (ex: Spring Boot rodando no PC)
+      # IMPORTANTE: deve ser acessível fora do Docker
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
+      # Como só temos 1 broker, não pode haver replicação de offsets maior que 1
+      # Evita erro de cluster em ambiente local
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  # =========================
+  # MONGODB DATABASE
+  # =========================
+  mongodb:
+    # Imagem oficial do MongoDB
+    image: mongo
+
+    # Nome fixo do container MongoDB
+    container_name: mongodb
+
+    ports:
+      # Porta padrão do MongoDB
+      # Usada por aplicações backend (Node, Spring, Python, etc)
+      - "27017:27017"
