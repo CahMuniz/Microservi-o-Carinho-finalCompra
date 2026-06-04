@@ -2,6 +2,7 @@ package com.web.cart_service.service;
 
 import com.web.cart_service.kafka.CartProducer;
 import com.web.cart_service.model.Cart;
+import com.web.cart_service.model.CartItem;
 import com.web.cart_service.model.Order;
 import com.web.cart_service.repository.CartRepository;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,71 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Carrinho não encontrado"));
     }
 
+    // ADD ITEM
+    public Cart addItem(String userId, CartItem newItem) {
+
+        Cart cart = repository.findByUserId(userId)
+                .orElse(new Cart());
+
+        cart.setUserId(userId);
+
+        if (cart.getItems() == null) {
+            cart.setItems(new ArrayList<>());
+        }
+
+        cart.getItems().add(newItem);
+
+        recalculateTotal(cart);
+
+        return repository.save(cart);
+    }
+
+    // REMOVE ITEM
+    public Cart removeItem(String userId, String productName) {
+
+        Cart cart = repository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Carrinho não encontrado"));
+
+        cart.getItems().removeIf(item ->
+                item.getProductName().equalsIgnoreCase(productName));
+
+        recalculateTotal(cart);
+
+        return repository.save(cart);
+    }
+
+    // UPDATE QUANTITY
+    public Cart updateQuantity(String userId,
+                               String productName,
+                               Integer quantity) {
+
+        Cart cart = repository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Carrinho não encontrado"));
+
+        cart.getItems().forEach(item -> {
+
+            if (item.getProductName().equalsIgnoreCase(productName)) {
+                item.setQuantity(quantity);
+            }
+        });
+
+        recalculateTotal(cart);
+
+        return repository.save(cart);
+    }
+
+    // CLEAR CART
+    public Cart clearCart(String userId) {
+
+        Cart cart = repository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Carrinho não encontrado"));
+
+        cart.setItems(new ArrayList<>());
+        cart.setTotal(0.0);
+
+        return repository.save(cart);
+    }
+
     // CHECKOUT
     public Order checkout(String userId) {
 
@@ -40,14 +106,9 @@ public class CartService {
             throw new RuntimeException("Carrinho vazio");
         }
 
-        double total = cart.getItems().stream()
-                .mapToDouble(item ->
-                        (item.getPrice() == null ? 0.0 : item.getPrice()) *
-                                (item.getQuantity() == null ? 0 : item.getQuantity())
-                )
-                .sum();
+        recalculateTotal(cart);
 
-        Order order = new Order(userId, cart.getItems(), total);
+        Order order = new Order(userId, cart.getItems(), cart.getTotal());
 
         try {
             producer.sendOrder(order);
@@ -61,5 +122,18 @@ public class CartService {
         repository.save(cart);
 
         return order;
+    }
+
+    // RECALCULATE TOTAL
+    private void recalculateTotal(Cart cart) {
+
+        double total = cart.getItems().stream()
+                .mapToDouble(item ->
+                        (item.getPrice() == null ? 0.0 : item.getPrice()) *
+                                (item.getQuantity() == null ? 0 : item.getQuantity())
+                )
+                .sum();
+
+        cart.setTotal(total);
     }
 }

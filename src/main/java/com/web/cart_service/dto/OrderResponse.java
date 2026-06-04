@@ -1,10 +1,11 @@
-package com.web.cart_service.model;
+package com.web.cart_service.dto;
+
+import com.web.cart_service.model.CartItem;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
-public class Order {
+public class OrderResponse {
 
     private String orderId;
 
@@ -18,19 +19,22 @@ public class Order {
 
     private LocalDateTime createdAt;
 
-    public Order() {
+    public OrderResponse() {
     }
 
-    public Order(String userId,
-                 List<CartItem> items,
-                 Double total) {
+    public OrderResponse(String orderId,
+                         String userId,
+                         List<CartItem> items,
+                         Double total,
+                         String status,
+                         LocalDateTime createdAt) {
 
-        this.orderId = UUID.randomUUID().toString();
+        this.orderId = orderId;
         this.userId = userId;
         this.items = items;
         this.total = total;
-        this.status = "CREATED";
-        this.createdAt = LocalDateTime.now();
+        this.status = status;
+        this.createdAt = createdAt;
     }
 
     public String getOrderId() {

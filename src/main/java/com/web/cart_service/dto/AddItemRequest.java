@@ -1,17 +1,19 @@
-package com.web.cart_service.model;
+package com.web.cart_service.dto;
 
-public class CartItem {
+public class AddItemRequest {
 
     private String productName;
+
     private Double price;
+
     private Integer quantity;
 
-    public CartItem() {
+    public AddItemRequest() {
     }
 
-    public CartItem(String productName,
-                    Double price,
-                    Integer quantity) {
+    public AddItemRequest(String productName,
+                          Double price,
+                          Integer quantity) {
 
         this.productName = productName;
         this.price = price;
